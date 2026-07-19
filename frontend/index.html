@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AegisDFIR – AI-Powered Forensic Assistant</title>
+<meta name="description" content="AI-powered Digital Forensics and Incident Response assistant with hybrid retrieval, citation-backed Q&A, and automated court-admissible report generation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c18;
+  --bg-card: rgba(255,255,255,0.035);
+  --bg-card-h: rgba(255,255,255,0.06);
+  --sidebar: #04060e;
+  --border: rgba(255,255,255,0.08);
+  --border-h: rgba(255,255,255,0.18);
+  --txt: #dde4f0;
+  --muted: #7a8a9e;
+  --purple: #9d4edd;
+  --purple-g: rgba(157,78,221,0.3);
+  --cyan: #00f5d4;
+  --cyan-g: rgba(0,245,212,0.2);
+  --blue: #2d9cdb;
+  --red: #ff4757;
+  --green: #2ed573;
+  --yellow: #ffd32a;
+  --f-body: 'Outfit', sans-serif;
+  --f-code: 'Fira Code', monospace;
+  --r: 12px;
+  --tr: all 0.25s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:var(--f-body)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2)}
+
+/* ── Layout ─────────────────────────────── */
+.app{display:flex;height:100vh;width:100vw;overflow:hidden}
+
+/* ── Sidebar ─────────────────────────────── */
+.sidebar{
+  width:240px;flex-shrink:0;
+  background:var(--sidebar);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:20px 14px;
+  overflow:hidden;
+}
+.brand{display:flex;align-items:center;gap:11px;margin-bottom:32px;padding-left:4px}
+.brand-ico{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,var(--purple),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px var(--purple-g);flex-shrink:0
+}
+.brand-ico svg{width:20px;height:20px;color:#fff;stroke:#fff}
+.brand-name{font-size:17px;font-weight:800;background:linear-gradient(90deg,#fff,#a0b0c8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand-sub{font-size:10px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase}
+
+.nav{display:flex;flex-direction:column;gap:6px;flex:1}
+.nb{
+  display:flex;align-items:center;gap:11px;
+  padding:11px 14px;border-radius:9px;
+  background:transparent;border:none;
+  color:var(--muted);font-family:var(--f-body);font-size:13.5px;font-weight:500;
+  cursor:pointer;transition:var(--tr);text-align:left;width:100%
+}
+.nb svg{width:17px;height:17px;flex-shrink:0;stroke:currentColor}
+.nb:hover{color:#fff;background:rgba(255,255,255,0.04)}
+.nb.active{
+  color:#fff;
+  background:linear-gradient(90deg,rgba(157,78,221,0.18),rgba(0,245,212,0.04));
+  border-left:3px solid var(--purple);
+  box-shadow:inset 0 0 12px rgba(157,78,221,0.07)
+}
+
+.sidebar-footer{
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:10px
+}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex-shrink:0}
+.sf-title{font-size:12px;font-weight:600;color:#fff}
+.sf-sub{font-size:10px;color:var(--muted)}
+
+/* ── Main ─────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+.topbar{
+  height:64px;flex-shrink:0;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px
+}
+.topbar h2{font-size:18px;font-weight:700}
+.topbar p{font-size:11.5px;color:var(--muted);margin-top:1px}
+.case-badge{
+  background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  padding:5px 12px;border-radius:20px;font-size:11.5px;font-weight:600;color:var(--cyan)
+}
+
+/* ── Tab Panes ─────────────────────────────── */
+.pane{display:none;flex:1;overflow-y:auto;padding:26px 28px;flex-direction:column;gap:22px;animation:fi .3s ease}
+.pane.active{display:flex}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Card ─────────────────────────────── */
+.card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--r);padding:22px;
+  backdrop-filter:blur(12px);transition:var(--tr)
+}
+.card:hover{background:var(--bg-card-h);border-color:var(--border-h)}
+.card-title{font-size:14.5px;font-weight:700;margin-bottom:16px;border-left:3px solid var(--purple);padding-left:10px}
+.card-title.c{border-left-color:var(--cyan)}
+
+/* ── Stat Cards ─────────────────────────────── */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.stat-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--r);padding:20px;
+  display:flex;align-items:center;gap:16px;
+  transition:var(--tr)
+}
+.stat-card:hover{transform:translateY(-2px);background:var(--bg-card-h);border-color:var(--border-h)}
+.si{width:46px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.si svg{width:22px;height:22px}
+.si.p{background:rgba(157,78,221,.12);color:var(--purple)}
+.si.b{background:rgba(45,156,219,.12);color:var(--blue)}
+.si.c{background:rgba(0,245,212,.12);color:var(--cyan)}
+.sv{font-size:26px;font-weight:800;color:#fff;line-height:1}
+.sl{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* ── Dashboard detail row ─────────────────────────────── */
+.dash-row{display:grid;grid-template-columns:2fr 1fr;gap:18px;flex:1;min-height:0}
+.scroll-inner{flex:1;overflow-y:auto;padding-right:6px}
+
+/* Timeline */
+.tl{padding-left:20px;border-left:2px solid rgba(255,255,255,0.06);margin-top:4px}
+.tl-node{position:relative;padding-left:24px;margin-bottom:20px}
+.tl-dot{position:absolute;left:-6px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--purple);border:2px solid var(--bg);box-shadow:0 0 8px var(--purple-g)}
+.tl-dot.mft{background:var(--cyan);box-shadow:0 0 8px var(--cyan-g)}
+.tl-time{font-family:var(--f-code);font-size:10.5px;color:var(--cyan);font-weight:600}
+.tl-title{font-size:13px;font-weight:700;color:#fff;margin-top:3px}
+.tl-desc{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+
+/* Info list */
+.info-list{display:flex;flex-direction:column;gap:10px}
+.ii{display:flex;justify-content:space-between;font-size:12.5px;border-bottom:1px dashed rgba(255,255,255,0.05);padding-bottom:8px}
+.ik{color:var(--muted)}
+.iv{color:#fff;font-weight:600;text-align:right}
+.alert-warn{
+  margin-top:14px;background:rgba(255,71,87,.07);border:1px solid rgba(255,71,87,.2);
+  border-radius:8px;padding:10px 14px;font-size:11.5px;color:#ff6b81;line-height:1.5
+}
+.alert-warn code{background:rgba(255,71,87,.15);padding:1px 4px;border-radius:3px;color:#fff;font-family:var(--f-code)}
+
+/* ── Ingest Tab ─────────────────────────────── */
+.ingest-grid{display:grid;grid-template-columns:1fr 2fr;gap:18px;flex:1;min-height:0}
+.drop-zone{
+  border:2px dashed rgba(0,245,212,.25);border-radius:10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:36px 20px;text-align:center;cursor:pointer;transition:var(--tr);margin-top:14px
+}
+.drop-zone:hover{border-color:var(--cyan);background:rgba(0,245,212,.03);box-shadow:0 0 18px var(--cyan-g)}
+.drop-zone svg{width:46px;height:46px;color:var(--cyan);margin-bottom:14px}
+.drop-zone p{font-size:13.5px;font-weight:600;color:#fff}
+.drop-zone span{font-size:11px;color:var(--muted);margin-top:5px}
+.term{display:flex;flex-direction:column;flex:1;min-height:0}
+.term-bar{display:flex;align-items:center;gap:8px;padding:9px 14px;background:#030508;border-bottom:1px solid var(--border);border-radius:10px 10px 0 0}
+.td{width:11px;height:11px;border-radius:50%}
+.td.r{background:#ff5f56}.td.y{background:#ffbd2e}.td.g{background:#27c93f}
+.tl-title-bar{font-family:var(--f-code);font-size:11px;color:var(--muted);margin-left:6px}
+.term-body{flex:1;background:#020408;border:1px solid rgba(255,255,255,.05);border-top:none;border-radius:0 0 10px 10px;padding:14px;font-family:var(--f-code);font-size:12.5px;line-height:1.65;overflow-y:auto;color:#7ec87e}
+.cl{margin-bottom:6px}
+.cl.sys{color:var(--muted)}
+.cl.cmd{color:var(--cyan)}
+.cl.ok{color:#a8f0b0}
+.cl.err{color:var(--red)}
+
+/* ── Search Tab ─────────────────────────────── */
+.search-bar-row{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+.search-bar-row input{
+  flex:1;background:#060a12;border:1px solid var(--border);border-radius:9px;
+  padding:11px 16px;color:#fff;font-family:var(--f-body);font-size:13.5px;transition:var(--tr)
+}
+.search-bar-row input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 10px var(--purple-g)}
+.btn-exec{
+  background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;
+  border:none;border-radius:9px;padding:0 22px;height:44px;
+  font-family:var(--f-body);font-size:13.5px;font-weight:600;
+  display:flex;align-items:center;gap:8px;cursor:pointer;transition:var(--tr);white-space:nowrap
+}
+.btn-exec:hover{box-shadow:0 4px 16px var(--purple-g);transform:translateY(-1px)}
+.btn-exec svg{width:15px;height:15px}
+.slider-row{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--bg-card);border:1px solid var(--border);border-radius:9px;margin-bottom:18px}
+.slider-row label{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.slider-row span{color:var(--cyan);font-weight:700}
+.slider-row input[type=range]{flex:1;height:5px;-webkit-appearance:none;background:rgba(255,255,255,.08);border-radius:3px;outline:none}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--cyan);cursor:pointer;box-shadow:0 0 8px var(--cyan-g)}
+.table-wrap{flex:1;overflow:auto;border:1px solid rgba(255,255,255,.05);border-radius:9px;background:#04060d}
+table.rt{width:100%;border-collapse:collapse;font-size:12.5px}
+table.rt th{background:#07090f;color:#fff;font-weight:600;padding:11px 14px;position:sticky;top:0;z-index:1;border-bottom:1px solid var(--border)}
+table.rt td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:top}
+table.rt tr:hover td{background:rgba(255,255,255,.02)}
+.ph{text-align:center;color:var(--muted);padding:50px 0}
+.score-b{background:rgba(157,78,221,.15);color:#c386f8;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:700;font-family:var(--f-code)}
+.src-b{background:rgba(255,255,255,.06);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-family:var(--f-code);font-size:11px;color:var(--muted)}
+.eid-b{background:rgba(0,245,212,.1);color:var(--cyan);padding:2px 6px;border-radius:4px;font-family:var(--f-code);font-size:11px;font-weight:700}
+.hl{background:rgba(255,211,0,.15);color:#ffe58f;padding:0 2px;border-radius:2px;font-weight:600}
+
+/* ── Chat Tab ─────────────────────────────── */
+.chat-wrap{display:grid;grid-template-columns:2fr 1fr;gap:18px;flex:1;min-height:0}
+.chat-box{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;min-height:0}
+.chat-msgs{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px}
+.msg{display:flex;gap:13px;animation:fi .3s ease}
+.msg.u{flex-direction:row-reverse;align-self:flex-end;max-width:78%}
+.msg.b{max-width:88%}
+.av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:700}
+.av.b{background:linear-gradient(135deg,var(--purple),var(--blue))}
+.av.b svg{width:17px;height:17px;stroke:#fff}
+.av.u{background:#2a2f3e;color:#fff}
+.mc{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-size:13.5px;line-height:1.65}
+.msg.b .mc{border-top-left-radius:0}
+.msg.u .mc{background:var(--purple);border-color:var(--purple);color:#fff;border-top-right-radius:0}
+.mc h3{font-size:14px;color:var(--cyan);margin:14px 0 7px;font-weight:700}
+.mc h3:first-child{margin-top:0}
+.mc code{background:rgba(0,0,0,.3);padding:1px 5px;border-radius:3px;font-family:var(--f-code);font-size:12px;color:#ff9f43}
+.msg.u .mc code{background:rgba(0,0,0,.2);color:#fff}
+.mc p{margin-bottom:10px}
+.mc p:last-child{margin-bottom:0}
+.mc ul,.mc ol{margin-left:18px;margin-bottom:10px}
+.mc li{margin-bottom:5px}
+.cit-btn{background:rgba(0,245,212,.15);color:var(--cyan);border:none;border-radius:3px;padding:1px 6px;font-size:11px;font-weight:700;font-family:var(--f-code);cursor:pointer;transition:var(--tr);margin-left:2px}
+.cit-btn:hover{background:var(--cyan);color:#000}
+.sugg{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+.sugg-btn{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted);font-family:var(--f-body);cursor:pointer;transition:var(--tr)}
+.sugg-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.chat-footer{padding:14px 18px 18px;border-top:1px solid var(--border)}
+.chat-in{display:flex;gap:10px}
+.chat-in input{flex:1;background:#060a12;border:1px solid var(--border);border-radius:9px;padding:11px 16px;color:#fff;font-family:var(--f-body);font-size:13.5px;transition:var(--tr)}
+.chat-in input:focus{outline:none;border-color:var(--purple)}
+.send-btn{width:44px;height:44px;border-radius:9px;background:var(--purple);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:var(--tr);flex-shrink:0}
+.send-btn:hover{background:#7d3ab8;box-shadow:0 0 12px var(--purple-g)}
+.send-btn svg{width:17px;height:17px;stroke:#fff}
+.refs-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;min-height:0}
+.refs-panel h3{font-size:14px;font-weight:700;margin-bottom:4px}
+.refs-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
+.refs-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.ref-ph{color:var(--muted);font-size:12px;text-align:center;margin-top:32px}
+.ref-card{background:#060a12;border:1px solid var(--border);border-radius:9px;padding:11px;font-size:12px;transition:var(--tr)}
+.ref-card:hover{border-color:var(--cyan)}
+.ref-hd{display:flex;justify-content:space-between;margin-bottom:5px}
+.ref-src{font-family:var(--f-code);color:var(--cyan);font-weight:600}
+.ref-meta{font-size:10px;color:var(--muted)}
+.ref-desc{color:var(--txt);line-height:1.45;font-size:11.5px}
+
+/* ── Literature Tab ─────────────────────────────── */
+.lit-search{width:100%;background:#060a12;border:1px solid var(--border);border-radius:9px;padding:11px 16px;color:#fff;font-family:var(--f-body);font-size:13.5px;margin-bottom:20px;transition:var(--tr)}
+.lit-search:focus{outline:none;border-color:var(--purple)}
+.lit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px}
+.lit-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:12px;transition:var(--tr)}
+.lit-card:hover{background:var(--bg-card-h);transform:translateY(-2px);border-color:var(--purple)}
+.lit-hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:10px}
+.lit-author{font-size:13.5px;font-weight:700;color:var(--cyan)}
+.lit-badge{background:rgba(255,255,255,.05);border:1px solid var(--border);padding:2px 8px;border-radius:12px;font-size:10px;color:var(--muted)}
+.lit-title{font-size:14px;font-weight:600;color:#fff;line-height:1.4}
+.lit-f{font-size:12px;line-height:1.5}
+.lit-fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.lit-fv{color:var(--txt)}
+.lit-fv.gap{color:#ff7675}
+
+/* ── Report Tab ─────────────────────────────── */
+.report-wrap{display:grid;grid-template-columns:1fr 2fr;gap:18px;flex:1;min-height:0}
+.report-form{display:flex;flex-direction:column;gap:18px}
+.fgrp{display:flex;flex-direction:column;gap:6px}
+.fgrp label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.fgrp input{background:#060a12;border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:#fff;font-family:var(--f-body);font-size:13.5px;transition:var(--tr)}
+.fgrp input:focus{outline:none;border-color:var(--purple)}
+.btn-compile{
+  background:var(--purple);color:#fff;border:none;border-radius:9px;padding:12px;
+  font-family:var(--f-body);font-weight:700;font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:var(--tr)
+}
+.btn-compile:hover{background:#7d3ab8;box-shadow:0 0 16px var(--purple-g)}
+.btn-compile svg{width:17px;height:17px}
+.export-actions{border-top:1px solid var(--border);padding-top:16px;display:flex;flex-direction:column;gap:10px}
+.export-actions h4{font-size:11px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.exp-btn{border:1px solid var(--border);background:rgba(255,255,255,.02);color:#fff;border-radius:7px;padding:10px;font-family:var(--f-body);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:var(--tr)}
+.exp-btn:hover{background:rgba(255,255,255,.05)}
+.exp-btn.print{border-color:var(--cyan);color:var(--cyan)}
+.exp-btn.print:hover{background:rgba(0,245,212,.05)}
+.exp-btn svg{width:16px;height:16px}
+.preview-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.ptabs{display:flex;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
+.ptab{background:transparent;border:none;color:var(--muted);font-family:var(--f-body);font-size:13.5px;font-weight:600;cursor:pointer;padding:5px 10px;border-radius:5px;transition:var(--tr)}
+.ptab:hover{color:#fff}
+.ptab.active{color:#fff;background:rgba(255,255,255,.06)}
+.preview-content{flex:1;overflow:hidden;display:flex}
+#preview-html{flex:1;overflow:auto;background:#fff;border-radius:0 0 var(--r) var(--r)}
+#preview-md{flex:1;resize:none;background:#040710;color:#9ab0c8;border:none;padding:16px;font-family:var(--f-code);font-size:12.5px;line-height:1.55;outline:none;display:none}
+.prev-ph{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;text-align:center;background:#030508;flex:1;padding:20px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>
+    </div>
+    <div><div class="brand-name">AegisDFIR</div><div class="brand-sub">Forensic Assistant</div></div>
+  </div>
+
+  <nav class="nav">
+    <button class="nb active" data-tab="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard
+    </button>
+    <button class="nb" data-tab="ingest">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Evidence Ingest
+    </button>
+    <button class="nb" data-tab="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Hybrid Explorer
+    </button>
+    <button class="nb" data-tab="chat">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Chat Analyst
+    </button>
+    <button class="nb" data-tab="literature">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Literature Hub
+    </button>
+    <button class="nb" data-tab="report">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Report Compiler
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="dot"></div>
+    <div><div class="sf-title">Offline Engine</div><div class="sf-sub">Grounded &amp; Verified</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <header class="topbar">
+    <div><h2 id="tab-title">Incident Dashboard</h2><p id="tab-desc">Telemetry and metrics overview of the June 1, 2026 security incident.</p></div>
+    <span class="case-badge">Case ID: IR-2026-0601</span>
+  </header>
+
+  <!-- DASHBOARD -->
+  <section class="pane active" id="pane-dashboard">
+    <div class="stats-row">
+      <div class="stat-card"><div class="si p"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div><div class="sv" id="st-events">0</div><div class="sl">Ingested Log Events</div></div></div>
+      <div class="stat-card"><div class="si b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></div><div><div class="sv" id="st-sources">0</div><div class="sl">Evidence Sources</div></div></div>
+      <div class="stat-card"><div class="si c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div><div class="sv" id="st-hosts">0</div><div class="sl">Compromised Hosts</div></div></div>
+    </div>
+    <div class="dash-row" style="flex:1;min-height:0">
+      <div class="card" style="display:flex;flex-direction:column;overflow:hidden">
+        <div class="card-title c">Chronological Attack Timeline</div>
+        <div class="scroll-inner" id="tl-container"><div style="color:var(--muted);font-size:12px;text-align:center;margin-top:30px">Loading events… go to Evidence Ingest to load data.</div></div>
+      </div>
+      <div class="card" style="overflow:hidden;display:flex;flex-direction:column">
+        <div class="card-title">Incident Parameters</div>
+        <div class="info-list">
+          <div class="ii"><span class="ik">Client</span><span class="iv">Apex Health Provider</span></div>
+          <div class="ii"><span class="ik">Incident Date</span><span class="iv">June 1, 2026</span></div>
+          <div class="ii"><span class="ik">Dataset Size</span><span class="iv">~150 GB (Parsed Sample)</span></div>
+          <div class="ii"><span class="ik">Scope</span><span class="iv">AD + 3 Endpoints</span></div>
+          <div class="ii"><span class="ik">Timeline Start</span><span class="iv" id="tl-start">—</span></div>
+          <div class="ii"><span class="ik">Timeline End</span><span class="iv" id="tl-end">—</span></div>
+        </div>
+        <div class="alert-warn">⚠ <strong>Advisory:</strong> Exfiltration detected to <code>45.227.254.12</code>. Immediate containment required.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INGEST -->
+  <section class="pane" id="pane-ingest">
+    <div class="ingest-grid" style="flex:1;min-height:0">
+      <div class="card" style="display:flex;flex-direction:column">
+        <div class="card-title c">Parse Pipeline</div>
+        <p style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:4px">Simulates Plaso/log2timeline and MFT parsing over the forensic data directory.</p>
+        <div class="drop-zone" id="ingest-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p>Click to Ingest Forensic Evidence</p>
+          <span>Parses sample_evtx.json &amp; sample_mft.csv</span>
+        </div>
+      </div>
+      <div class="card term" style="display:flex;flex-direction:column;overflow:hidden">
+        <div class="term-bar"><span class="td r"></span><span class="td y"></span><span class="td g"></span><span class="tl-title-bar">dfir-parser — bash</span></div>
+        <div class="term-body" id="console"><span class="cl sys">[SYSTEM] Parser idle. Click trigger to begin ingestion...</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SEARCH -->
+  <section class="pane" id="pane-search">
+    <div class="search-bar-row">
+      <input type="text" id="sq" placeholder="Query: Event IDs, IPs, filenames, services… e.g. '4624' or 'UpdaterService'">
+      <button class="btn-exec" id="search-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</button>
+    </div>
+    <div class="slider-row">
+      <label>Retrieval Mode: <span id="w-label">Hybrid 50/50</span></label>
+      <input type="range" id="w-slider" min="0" max="100" value="50">
+      <span style="font-size:11px;color:var(--muted);white-space:nowrap">← Dense / Sparse →</span>
+    </div>
+    <div class="card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="card-title">Matched Log Chunks</div>
+      <div class="table-wrap">
+        <table class="rt">
+          <thead><tr><th style="width:8%">Score</th><th style="width:14%">Timestamp</th><th style="width:13%">Host</th><th style="width:13%">Source</th><th style="width:10%">Event ID</th><th>Description</th></tr></thead>
+          <tbody id="stbody"><tr><td colspan="6" class="ph">Run a search to see matching forensic event chunks.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHAT -->
+  <section class="pane" id="pane-chat">
+    <div class="chat-wrap" style="flex:1;min-height:0">
+      <div class="chat-box">
+        <div class="chat-msgs" id="chat-msgs">
+          <div class="msg b">
+            <div class="av b"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            <div class="mc">
+              <p>Welcome, Investigator. I am <strong>AegisDFIR</strong> — your Tier-3 DFIR analyst.</p>
+              <p>Ask me anything about this incident. Every answer is strictly grounded in the ingested evidence — click the <code>[file:line]</code> citations to trace each claim to its raw log source.</p>
+              <div class="sugg">
+                <button class="sugg-btn" data-q="What services were installed for persistence?">Services installed?</button>
+                <button class="sugg-btn" data-q="Was there any lateral movement detected?">Lateral movement?</button>
+                <button class="sugg-btn" data-q="Did the attacker attempt to cover their tracks?">Tracks cleared?</button>
+                <button class="sugg-btn" data-q="What files were created or deleted on the filesystem?">File activity?</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-footer">
+          <div class="chat-in">
+            <input type="text" id="chat-in" placeholder="Ask AegisDFIR a question about this incident…">
+            <button class="send-btn" id="send-btn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="refs-panel">
+        <h3>Grounding Citations</h3>
+        <div class="refs-sub">Evidence chunks used to formulate each response.</div>
+        <div class="refs-list" id="refs-list"><div class="ref-ph">Citations will appear here after each query.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LITERATURE -->
+  <section class="pane" id="pane-literature">
+    <input type="text" id="lit-q" class="lit-search" placeholder="Search by author, keyword, methodology, or finding…">
+    <div class="lit-grid" id="lit-grid"><div style="color:var(--muted);text-align:center;grid-column:1/-1">Loading literature database…</div></div>
+  </section>
+
+  <!-- REPORT -->
+  <section class="pane" id="pane-report">
+    <div class="report-wrap" style="flex:1;min-height:0">
+      <div class="card report-form">
+        <div class="card-title">Configure Report</div>
+        <div class="fgrp"><label>Case Name / ID</label><input type="text" id="r-case" value="IR-2026-0601-APEX"></div>
+        <div class="fgrp"><label>Lead Investigator</label><input type="text" id="r-inv" value="Karthik &amp; Aryan (Team 1)"></div>
+        <button class="btn-compile" id="compile-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Compile Report</button>
+        <div class="export-actions" id="export-actions" style="display:none">
+          <h4>Export Options</h4>
+          <button class="exp-btn print" id="print-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / Save PDF</button>
+          <button class="exp-btn" id="dl-md-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download Markdown</button>
+        </div>
+      </div>
+      <div class="preview-card">
+        <div class="ptabs">
+          <button class="ptab active" data-fmt="html">Interactive Preview</button>
+          <button class="ptab" data-fmt="md">Raw Markdown</button>
+        </div>
+        <div class="preview-content">
+          <div id="preview-html"><div class="prev-ph">Configure and compile the report to preview it here.</div></div>
+          <textarea id="preview-md" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+const API = window.location.origin;
+const state = { events: [], literature: [], weight: 0.5 };
+
+// ── Tab routing ────────────────────────────────────────────────────────────────
+const TABS = { dashboard:'Incident Dashboard', ingest:'Evidence Ingest Pipeline', search:'Hybrid Retrieval Explorer', chat:'Chat Analyst Room', literature:'Literature Review Hub', report:'Forensic Report Compiler' };
+const DESCS = { dashboard:'Telemetry and metrics for the June 1, 2026 incident.', ingest:'Parse raw evidence files and load them into the search index.', search:'Run BM25 exact match and semantic search over log event chunks.', chat:'Ask the grounded AI analyst about this case. All answers are citation-backed.', literature:'Explore the 15 research papers compiled in Week 1 of the capstone.', report:'Generate court-admissible forensic reports with chain-of-custody locks.' };
+
+document.querySelectorAll('.nb').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const t = btn.dataset.tab;
+    document.querySelectorAll('.nb').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+    document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === `pane-${t}`));
+    document.getElementById('tab-title').textContent = TABS[t];
+    document.getElementById('tab-desc').textContent = DESCS[t];
+    if (t === 'literature' && state.literature.length === 0) loadLit();
+  });
+});
+
+// ── Helper: sleep ──────────────────────────────────────────────────────────────
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ── Helper: markdown parser ────────────────────────────────────────────────────
+function md2html(txt) {
+  if (!txt) return '';
+  let h = txt
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\[([^\]]+):(\d+)\]/g, '<button class="cit-btn" data-f="$1" data-l="$2">[$1:$2]</button>')
+    .replace(/^\s*[-*]\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
+    .replace(/<\/ul>\s*<ul>/g, '')
+    .replace(/\n\n+/g, '<p></p>')
+    .replace(/\n/g, '<br>');
+  return h;
+}
+
+// ── Dashboard telemetry ────────────────────────────────────────────────────────
+async function loadTelemetry() {
+  try {
+    const r = await fetch(`${API}/api/events`);
+    if (!r.ok) return;
+    state.events = await r.json();
+    renderStats();
+    renderTimeline();
+  } catch(e) { console.warn('Telemetry load failed:', e); }
+}
+
+function renderStats() {
+  document.getElementById('st-events').textContent = state.events.length;
+  const sources = new Set(state.events.map(e => e.source_file));
+  document.getElementById('st-sources').textContent = sources.size;
+  const hosts = new Set(state.events.map(e => e.hostname));
+  document.getElementById('st-hosts').textContent = hosts.size;
+  if (state.events.length) {
+    document.getElementById('tl-start').textContent = state.events[0].timestamp;
+    document.getElementById('tl-end').textContent = state.events[state.events.length-1].timestamp;
+  }
+}
+
+function renderTimeline() {
+  if (!state.events.length) { document.getElementById('tl-container').innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;margin-top:30px">No events loaded yet.</div>'; return; }
+  const html = '<div class="tl">' + state.events.map(ev => `
+    <div class="tl-node">
+      <span class="tl-dot${ev.event_type==='MFT'?' mft':''}"></span>
+      <div class="tl-time">${ev.timestamp} — ${ev.hostname}</div>
+      <div class="tl-title">${ev.event_id} &nbsp;|&nbsp; ${ev.source_file}:${ev.line_number}</div>
+      <div class="tl-desc">${ev.description.substring(0,140)}${ev.description.length>140?'…':''}</div>
+    </div>`).join('') + '</div>';
+  document.getElementById('tl-container').innerHTML = html;
+}
+
+// ── Ingest pipeline ────────────────────────────────────────────────────────────
+document.getElementById('ingest-btn').addEventListener('click', async () => {
+  const cons = document.getElementById('console');
+  cons.innerHTML = '';
+  const log = (t, cls='') => { cons.innerHTML += `<div class="cl ${cls}">${t}</div>`; cons.scrollTop = 99999; };
+  log('[SYSTEM] Initializing DFIR parser pipeline...', 'sys');
+  await sleep(500);
+  log('[CMD] plaso-parser --input sample_evtx.json --format json', 'cmd');
+  await sleep(700);
+  log('[PARSER] Security.evtx → 4 audit records extracted.', 'ok');
+  log('[PARSER] System.evtx → 2 service control records extracted.', 'ok');
+  await sleep(500);
+  log('[CMD] mft-ingester --input sample_mft.csv --normalize', 'cmd');
+  await sleep(600);
+  log('[PARSER] $MFT → 4 file system change records mapped.', 'ok');
+  await sleep(400);
+  log('[SYSTEM] Building event-based hierarchical chunk index…', 'sys');
+  await sleep(500);
+  log('[SYSTEM] BM25 sparse index: 10 events indexed.', 'ok');
+  log('[SYSTEM] TF-IDF semantic index: vocabulary built.', 'ok');
+  try {
+    const r = await fetch(`${API}/api/ingest`, { method: 'POST' });
+    if (r.ok) {
+      const d = await r.json();
+      await sleep(300);
+      log(`[SUCCESS] Ingested ${d.total_events} forensic events. Sources: ${d.sources.join(', ')}`, 'ok');
+      log(`[SUCCESS] Hosts discovered: ${d.endpoints.join(', ')}`, 'ok');
+      state.events = [];
+      loadTelemetry();
+    } else { log('[ERROR] Ingest API returned an error.', 'err'); }
+  } catch(e) { log(`[ERROR] ${e}`, 'err'); }
+});
+
+// ── Search ─────────────────────────────────────────────────────────────────────
+const wSlider = document.getElementById('w-slider');
+const wLabel = document.getElementById('w-label');
+wSlider.addEventListener('input', () => {
+  const v = +wSlider.value;
+  state.weight = v / 100;
+  wLabel.textContent = v === 0 ? '100% Dense Semantic' : v === 100 ? '100% Sparse BM25' : `Hybrid BM25:${v}% / Semantic:${100-v}%`;
+});
+
+document.getElementById('search-btn').addEventListener('click', doSearch);
+document.getElementById('sq').addEventListener('keypress', e => e.key==='Enter' && doSearch());
+
+async function doSearch() {
+  const q = document.getElementById('sq').value.trim();
+  if (!q) return;
+  document.getElementById('stbody').innerHTML = '<tr><td colspan="6" class="ph">Searching…</td></tr>';
+  try {
+    const r = await fetch(`${API}/api/search`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ query:q, top_k:10, sparse_weight:state.weight }) });
+    if (!r.ok) { document.getElementById('stbody').innerHTML = '<tr><td colspan="6" class="ph">Search error — ingest evidence first.</td></tr>'; return; }
+    const data = await r.json();
+    if (!data.length) { document.getElementById('stbody').innerHTML = '<tr><td colspan="6" class="ph">No matching chunks found.</td></tr>'; return; }
+    const toks = q.split(/\s+/).filter(t => t.length > 2);
+    const hl = s => toks.reduce((acc, t) => acc.replace(new RegExp(`(${t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<span class="hl">$1</span>'), s);
+    document.getElementById('stbody').innerHTML = data.map(res => {
+      const ev = res.event;
+      return `<tr>
+        <td><span class="score-b">${res.score}</span></td>
+        <td><code style="font-size:11px">${ev.timestamp}</code></td>
+        <td><code style="font-size:11px">${ev.hostname}</code></td>
+        <td><span class="src-b">${ev.source_file}:${ev.line_number}</span></td>
+        <td><span class="eid-b">${ev.event_id}</span></td>
+        <td style="font-size:12px">${hl(ev.description)}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { document.getElementById('stbody').innerHTML = `<tr><td colspan="6" class="ph">Error: ${e}</td></tr>`; }
+}
+
+// ── Chat ───────────────────────────────────────────────────────────────────────
+document.getElementById('send-btn').addEventListener('click', doChat);
+document.getElementById('chat-in').addEventListener('keypress', e => e.key==='Enter' && doChat());
+document.querySelectorAll('.sugg-btn').forEach(b => b.addEventListener('click', () => { document.getElementById('chat-in').value = b.dataset.q; doChat(); }));
+
+async function doChat() {
+  const q = document.getElementById('chat-in').value.trim();
+  if (!q) return;
+  document.getElementById('chat-in').value = '';
+  appendMsg('u', q);
+  const lid = appendMsg('b', '<em style="color:var(--muted)">AegisDFIR is retrieving context and generating a grounded response…</em>');
+  try {
+    // retrieve context first
+    const sr = await fetch(`${API}/api/search`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ query:q, top_k:5, sparse_weight:0.5 }) });
+    let idxs = [];
+    if (sr.ok) { const sd = await sr.json(); idxs = sd.map(x => x.global_index); }
+    // chat
+    const cr = await fetch(`${API}/api/chat`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ query:q, retrieved_indices:idxs }) });
+    if (!cr.ok) { updateMsg(lid, 'Error: chat endpoint failed. Ensure data is ingested first.'); return; }
+    const cd = await cr.json();
+    updateMsg(lid, md2html(cd.answer));
+    renderRefs(cd.grounded_events);
+    bindCits();
+  } catch(e) { updateMsg(lid, `Network error: ${e}`); }
+}
+
+function appendMsg(who, html) {
+  const id = 'msg-' + Date.now();
+  const avHtml = who === 'b'
+    ? `<div class="av b"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>`
+    : `<div class="av u">US</div>`;
+  const el = document.createElement('div');
+  el.className = `msg ${who}`;
+  el.id = id;
+  el.innerHTML = avHtml + `<div class="mc">${who==='u'?`<p>${esc(html)}</p>`:html}</div>`;
+  document.getElementById('chat-msgs').appendChild(el);
+  document.getElementById('chat-msgs').scrollTop = 99999;
+  return id;
+}
+
+function updateMsg(id, html) {
+  const el = document.getElementById(id);
+  if (el) { el.querySelector('.mc').innerHTML = html; document.getElementById('chat-msgs').scrollTop = 99999; }
+}
+
+function renderRefs(events) {
+  if (!events || !events.length) { document.getElementById('refs-list').innerHTML = '<div class="ref-ph">No grounding events.</div>'; return; }
+  document.getElementById('refs-list').innerHTML = events.map(ev => `
+    <div class="ref-card" id="rc-${ev.source_file}-${ev.line_number}">
+      <div class="ref-hd"><span class="ref-src">${ev.source_file}:${ev.line_number}</span><span class="ref-meta">Event: ${ev.event_id}</span></div>
+      <div class="ref-desc">${ev.description.substring(0,180)}${ev.description.length>180?'…':''}</div>
+    </div>`).join('');
+}
+
+function bindCits() {
+  document.querySelectorAll('.cit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const rc = document.getElementById(`rc-${btn.dataset.f}-${btn.dataset.l}`);
+      if (rc) {
+        document.querySelectorAll('.ref-card').forEach(c => c.style.borderColor = '');
+        rc.style.borderColor = 'var(--cyan)';
+        rc.scrollIntoView({ behavior:'smooth', block:'nearest' });
+      }
+    });
+  });
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Literature ─────────────────────────────────────────────────────────────────
+async function loadLit() {
+  try {
+    const r = await fetch(`${API}/api/literature`);
+    if (!r.ok) return;
+    state.literature = await r.json();
+    renderLit(state.literature);
+  } catch(e) { document.getElementById('lit-grid').innerHTML = '<div style="color:var(--muted)">Failed to load.</div>'; }
+}
+
+function renderLit(papers) {
+  if (!papers.length) { document.getElementById('lit-grid').innerHTML = '<div style="color:var(--muted);grid-column:1/-1;text-align:center">No papers found.</div>'; return; }
+  document.getElementById('lit-grid').innerHTML = papers.map(p => `
+    <div class="lit-card">
+      <div class="lit-hd"><span class="lit-author">${p.author_year}</span><span class="lit-badge">#${p.id}</span></div>
+      <div class="lit-title">${p.title}</div>
+      <div class="lit-f"><div class="lit-fl">Focus</div><div class="lit-fv">${p.focus}</div></div>
+      <div class="lit-f"><div class="lit-fl">Methodology</div><div class="lit-fv">${p.methodology}</div></div>
+      <div class="lit-f"><div class="lit-fl">Findings</div><div class="lit-fv">${p.findings}</div></div>
+      <div class="lit-f"><div class="lit-fl">Research Gap / Limitation</div><div class="lit-fv gap">${p.limitations}</div></div>
+    </div>`).join('');
+}
+
+document.getElementById('lit-q').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  renderLit(state.literature.filter(p => JSON.stringify(p).toLowerCase().includes(q)));
+});
+
+// ── Report ─────────────────────────────────────────────────────────────────────
+document.getElementById('compile-btn').addEventListener('click', async () => {
+  const cn = document.getElementById('r-case').value.trim();
+  const inv = document.getElementById('r-inv').value.trim();
+  document.getElementById('preview-html').innerHTML = '<div class="prev-ph">Compiling report and locking chain of custody…</div>';
+  try {
+    const r = await fetch(`${API}/api/report`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ case_name:cn, investigator:inv }) });
+    if (!r.ok) { document.getElementById('preview-html').innerHTML = '<div class="prev-ph">Error — ingest evidence first.</div>'; return; }
+    const d = await r.json();
+    // HTML preview
+    document.getElementById('preview-html').innerHTML = '<iframe id="rif" style="width:100%;height:100%;border:none"></iframe>';
+    const ifd = document.getElementById('rif').contentDocument;
+    ifd.open(); ifd.write(d.html); ifd.close();
+    // MD preview
+    document.getElementById('preview-md').value = d.markdown;
+    document.getElementById('export-actions').style.display = 'flex';
+    window._reportMd = d.markdown;
+    window._reportCase = cn;
+  } catch(e) { document.getElementById('preview-html').innerHTML = `<div class="prev-ph">Error: ${e}</div>`; }
+});
+
+document.querySelectorAll('.ptab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ptab').forEach(b => b.classList.toggle('active', b === btn));
+    const html = btn.dataset.fmt === 'html';
+    document.getElementById('preview-html').style.display = html ? 'block' : 'none';
+    document.getElementById('preview-md').style.display = html ? 'none' : 'block';
+  });
+});
+
+document.getElementById('print-btn').addEventListener('click', () => {
+  const ifrm = document.getElementById('rif');
+  if (ifrm) { ifrm.contentWindow.focus(); ifrm.contentWindow.print(); }
+});
+
+document.getElementById('dl-md-btn').addEventListener('click', () => {
+  if (!window._reportMd) return;
+  const blob = new Blob([window._reportMd], { type:'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${window._reportCase || 'report'}.md`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// ── Boot ───────────────────────────────────────────────────────────────────────
+loadTelemetry();
+</script>
+</body>
+</html>

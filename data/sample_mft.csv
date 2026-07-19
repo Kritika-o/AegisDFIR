@@ -1,0 +1,5 @@
+file,line_number,timestamp,action,filepath,size_bytes,md5
+MFT.csv,4,2026-06-01T02:20:10Z,Created,C:\Windows\Temp\updater.exe,450560,e2c8828e1837ff221efc1b483c6759c5
+MFT.csv,15,2026-06-01T02:29:45Z,Created,C:\Users\Public\Downloads\malware_payload.ps1,2048,a2b4f982d3f123e52bea89f123e52bea
+MFT.csv,35,2026-06-01T03:30:20Z,Created,C:\Users\Public\Documents\staged.zip,152044820,f3a6b8c9d10e11f12a13b14c15d16e17
+MFT.csv,42,2026-06-01T03:45:00Z,Deleted,C:\Windows\Temp\updater.exe,0,
