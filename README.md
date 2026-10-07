@@ -7,7 +7,7 @@ Every answer AegisDFIR gives is strictly grounded in ingested forensic evidence 
 ## Team
 
 - **Kritika Kulkarni** — National Forensic Sciences University, Dharwad
-- **Shreya Agrawal** — NMIMS Nilkamal School of Mathematics, Applied Statistics & Analytics, Mumbai
+
 
 **Guide:** Dr. Manish Kumar, Professor, School of Computer Science and Engineering, RV University
 
